@@ -11,6 +11,7 @@ object Extractor extends App {
     .getOrCreate()
 
 
-  sparkSession.sparkContext.textFile("hdfs://172.17.0.2:9000/data.csv").foreach(println)
+//  sparkSession.sparkContext.textFile("hdfs://172.17.0.2:9000/data.csv").foreach(println)
+    sparkSession.sparkContext.textFile("data.csv").foreach(println)
 
 }
