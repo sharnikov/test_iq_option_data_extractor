@@ -4,7 +4,7 @@ import org.apache.spark.sql.types.StructType
 
 object SchemaFactory {
 
-  def getVacanciesSchema() = {
+  def getRawSchema() = {
     new StructType()
       .add("id", "string", nullable = false)
       .add("premium", "boolean", nullable = false)
@@ -17,7 +17,7 @@ object SchemaFactory {
       .add("area_name", "string", nullable = false)
       .add("salary_from", "double")
       .add("salary_to", "double")
-      .add("salary_currency", "string", nullable = false)
+      .add("salary_currency", "string")
       .add("salary_gross", "boolean")
       .add("adress_street", "string")
       .add("adress_building", "string")
