@@ -19,8 +19,10 @@ object Extractor extends App {
 
   import sparkSession.sqlContext.implicits._
 
-//  sparkSession.sparkContext.textFile("hdfs://172.17.0.2:9000/data.csv").foreach(println)
-//  val file = sparkSession.sparkContext.textFile("data.csv").foreach(println)
+//    val loadedData = sparkSession.read
+//      .option("sep", ";")
+//      .schema(getRawSchema())
+//      .csv("hdfs://172.17.0.2:9000/data.csv")
 
     val databaseUrl = "jdbc:postgresql://localhost:5432/postgres"
 
@@ -56,23 +58,19 @@ object Extractor extends App {
         "alternate_url",
         "snippet_requirement",
         "snippet_responsibility"
-      )
+      ).persist()
 
+
+      loadedVacancies
+        .write
+        .mode(SaveMode.Append)
+        .jdbc(databaseUrl, "vacancies", connectionProperties)
 
       val openVacancies = sparkSession.read.jdbc(databaseUrl, "vacancies", connectionProperties)
         .select("id", "is_open")
         .where(col("is_open").equalTo(true)).persist()
 
       val openIdsList = openVacancies.select("id").collect().map(_(0)).toList
-
-      val newVacancies = loadedVacancies.where(!col("id").isin(openIdsList:_*))
-      newVacancies
-        .write
-        .mode(SaveMode.Append)
-        .jdbc(databaseUrl, "vacancies", connectionProperties)
-
-      newVacancies.show()
-
       val allLoadedIds = loadedVacancies.select("id").collect().map(_(0)).toList
       val idsToClose = openIdsList.filterNot(allLoadedIds.contains)
 
@@ -84,6 +82,30 @@ object Extractor extends App {
         statement.close()
         conn.close()
       }
+
+//      val loadedEmploeesData = loadedVacancies.select(
+//        "adress_street",
+//        "adress_building",
+//        "adress_description",
+//        "adress_lat",
+//        "adress_lng",
+//        "adress_raw",
+//        "adress_id",
+//        "employer_id",
+//        "employer_name",
+//        "employer_url",
+//        "employer_vacancies_url",
+//        "employer_trusted",
+//        "has_open"
+//      )
+//
+//      val loadedEmplyeIds = loadedEmploeesData.select("employer_id").collect().map(_(0)).toList
+//      val current = sparkSession.read.jdbc(databaseUrl, "employers", connectionProperties)
+//        .select("employer_id")
+//        .where(col("has_open").equalTo(true))
+//        .where()
+
+
 
     }
 }
