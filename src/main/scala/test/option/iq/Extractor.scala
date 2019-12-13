@@ -35,6 +35,7 @@ object Extractor extends App {
       .option("sep", ";")
       .schema(getRawSchema())
       .csv("/home/osharnikov/IdeaProjects/DataFetcher/data.csv")
+      .persist()
 
     if (loadedData.count() > 0) {
       val loadedVacancies = loadedData.select(
@@ -51,6 +52,7 @@ object Extractor extends App {
         "salary_to",
         "salary_currency",
         "salary_gross",
+        "adress_id",
         "employer_id",
         "employer_name",
         "created_at",
@@ -58,7 +60,7 @@ object Extractor extends App {
         "alternate_url",
         "snippet_requirement",
         "snippet_responsibility"
-      ).persist()
+      )
 
 
       loadedVacancies
@@ -70,8 +72,8 @@ object Extractor extends App {
         .select("id", "is_open")
         .where(col("is_open").equalTo(true)).persist()
 
+      val allLoadedIds = loadedData.select("id").collect().map(_(0)).toList
       val openIdsList = openVacancies.select("id").collect().map(_(0)).toList
-      val allLoadedIds = loadedVacancies.select("id").collect().map(_(0)).toList
       val idsToClose = openIdsList.filterNot(allLoadedIds.contains)
 
       if (idsToClose.nonEmpty) {
@@ -83,21 +85,29 @@ object Extractor extends App {
         conn.close()
       }
 
-//      val loadedEmploeesData = loadedVacancies.select(
-//        "adress_street",
-//        "adress_building",
-//        "adress_description",
-//        "adress_lat",
-//        "adress_lng",
-//        "adress_raw",
-//        "adress_id",
-//        "employer_id",
-//        "employer_name",
-//        "employer_url",
-//        "employer_vacancies_url",
-//        "employer_trusted",
-//        "has_open"
-//      )
+      val loadedEmploeesData = loadedData.select(
+        "adress_street",
+        "adress_building",
+        "adress_description",
+        "adress_lat",
+        "adress_lng",
+        "adress_raw",
+        "adress_id",
+        "employer_id",
+        "employer_name",
+        "employer_url",
+        "employer_vacancies_url",
+        "employer_trusted"
+      ).where(col("adress_id").isNotNull && col("employer_id").isNotNull).distinct()
+
+      loadedEmploeesData.show()
+
+      loadedEmploeesData
+        .write
+        .mode(SaveMode.Append)
+        .jdbc(databaseUrl, "employers", connectionProperties)
+
+
 //
 //      val loadedEmplyeIds = loadedEmploeesData.select("employer_id").collect().map(_(0)).toList
 //      val current = sparkSession.read.jdbc(databaseUrl, "employers", connectionProperties)
