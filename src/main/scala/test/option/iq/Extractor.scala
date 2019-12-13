@@ -17,7 +17,6 @@ object Extractor extends App {
     .appName("extractor")
     .getOrCreate()
 
-  import sparkSession.sqlContext.implicits._
 
 //    val loadedData = sparkSession.read
 //      .option("sep", ";")
@@ -62,7 +61,6 @@ object Extractor extends App {
         "snippet_responsibility"
       )
 
-
       loadedVacancies
         .write
         .mode(SaveMode.Append)
@@ -86,34 +84,25 @@ object Extractor extends App {
       }
 
       val loadedEmploeesData = loadedData.select(
+        "adress_id",
+        "employer_id",
         "adress_street",
         "adress_building",
         "adress_description",
         "adress_lat",
         "adress_lng",
         "adress_raw",
-        "adress_id",
-        "employer_id",
         "employer_name",
         "employer_url",
         "employer_vacancies_url",
         "employer_trusted"
-      ).where(col("adress_id").isNotNull && col("employer_id").isNotNull).distinct()
-
-      loadedEmploeesData.show()
+      ).where(col("adress_id").isNotNull && col("employer_id").isNotNull)
+        .dropDuplicates(Seq("adress_id", "employer_id"))
 
       loadedEmploeesData
         .write
-        .mode(SaveMode.Append)
+        .mode(SaveMode.Ignore)
         .jdbc(databaseUrl, "employers", connectionProperties)
-
-
-//
-//      val loadedEmplyeIds = loadedEmploeesData.select("employer_id").collect().map(_(0)).toList
-//      val current = sparkSession.read.jdbc(databaseUrl, "employers", connectionProperties)
-//        .select("employer_id")
-//        .where(col("has_open").equalTo(true))
-//        .where()
 
 
 
