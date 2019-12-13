@@ -1,10 +1,11 @@
 package test.option.iq
 
+import java.sql.DriverManager
 import java.util.Properties
 
 import SchemaFactory.getRawSchema
 import org.apache.spark.sql.{SaveMode, SparkSession}
-import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.functions.{col, when}
 
 
 
@@ -57,34 +58,32 @@ object Extractor extends App {
         "snippet_responsibility"
       )
 
-//      loadedVacancies.show()
 
-      val openIds = sparkSession.read.jdbc(databaseUrl, "vacancies", connectionProperties)
-        .select("id")
-        .where(col("is_open").equalTo(true))
+      val openVacancies = sparkSession.read.jdbc(databaseUrl, "vacancies", connectionProperties)
+        .select("id", "is_open")
+        .where(col("is_open").equalTo(true)).persist()
 
-      val openIdsList = openIds.collect().map(_(0)).toList
+      val openIdsList = openVacancies.select("id").collect().map(_(0)).toList
 
-      val newCacancies = loadedVacancies.where(!col("id").isin(openIdsList:_*))
-      newCacancies.write
+      val newVacancies = loadedVacancies.where(!col("id").isin(openIdsList:_*))
+      newVacancies
+        .write
         .mode(SaveMode.Append)
         .jdbc(databaseUrl, "vacancies", connectionProperties)
 
-      newCacancies.show()
-//      val deleteVacanciesIds = openIds.where()
+      newVacancies.show()
+
+      val allLoadedIds = loadedVacancies.select("id").collect().map(_(0)).toList
+      val idsToClose = openIdsList.filterNot(allLoadedIds.contains)
+
+      if (idsToClose.nonEmpty) {
+        val conn = DriverManager.getConnection(databaseUrl, "postgres", "PGPASSWORD")
+        val statement = conn.createStatement()
+        statement.execute(f"update vacancies set is_open = false where id in ('${idsToClose.mkString("','")}')")
+
+        statement.close()
+        conn.close()
+      }
+
     }
-
-
-
-
-
-
-//    vacanciesToSave
-//      .write
-//      .mode(SaveMode.Append)
-//      .jdbc(databaseUrl, "vacancies", connectionProperties)
-
-
-//    val df = sparkSession.read.jdbc(databaseUrl, "(select * from vacancies) as vac", connectionProperties)
-//    df.show()
 }
