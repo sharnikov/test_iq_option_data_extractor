@@ -94,7 +94,10 @@ object Extractor extends App {
         .mode(SaveMode.Append)
         .jdbc(databaseUrl, "vacancies", connectionProperties)
 
-      val vacanciesIdsToClose = openVacancies.select("id").except(loadedVacancies.select("id")).persist()
+      val vacanciesIdsToClose = openVacancies
+        .select("id")
+        .where(col("adress_id").isNotNull && col("employer_id").isNotNull)
+        .except(loadedVacancies.select("id")).persist()
 
       vacanciesIdsToClose.show()
 
