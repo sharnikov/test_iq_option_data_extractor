@@ -62,7 +62,9 @@ object Extractor extends App {
         "alternate_url",
         "snippet_requirement",
         "snippet_responsibility"
-      )
+      ).where(col("id").isNotNull)
+
+      loadedVacancies.show()
 
       loadedVacancies
         .write

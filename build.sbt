@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   name := "Data Extractor",
   organization := "test.option.iq",
-  scalaVersion := "2.11.12",
+  scalaVersion := "2.12.0",
   version := "0.1"
 )
 
@@ -16,8 +16,8 @@ lazy val root = (project in file("."))
     assamblySettings,
     resourceDirectory := baseDirectory.value / "resources",
     libraryDependencies ++= Seq(
-      "org.apache.spark" %% "spark-sql" % "2.2.0",
-      "org.apache.spark" %% "spark-core" % "2.2.0",
+      "org.apache.spark" %% "spark-sql" % "3.0.0-preview",
+      "org.apache.spark" %% "spark-core" % "3.0.0-preview",
       "org.postgresql" % "postgresql" % "42.2.9"
     )
 )
