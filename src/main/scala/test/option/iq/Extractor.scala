@@ -5,7 +5,7 @@ import java.util.Properties
 
 import SchemaFactory.getRawSchema
 import org.apache.spark.sql.{SaveMode, SparkSession}
-import org.apache.spark.sql.functions.{col, when}
+import org.apache.spark.sql.functions.col
 
 
 
@@ -17,18 +17,21 @@ object Extractor extends App {
     .appName("extractor")
     .getOrCreate()
 
+  val user = "some_user"
+  val password = "some_pass"
+
 
 //    val loadedData = sparkSession.read
 //      .option("sep", ";")
 //      .schema(getRawSchema())
 //      .csv("hdfs://172.17.0.2:9000/data.csv")
 
-    val databaseUrl = "jdbc:postgresql://localhost:5432/postgres"
+    val databaseUrl = "jdbc:postgresql://localhost:5432/vacancies_db"
 
     val connectionProperties = new Properties()
     connectionProperties.put("Driver", "org.postgresql.Driver")
-    connectionProperties.put("user", "postgres")
-    connectionProperties.put("password", "PGPASSWORD")
+    connectionProperties.put("user", user)
+    connectionProperties.put("password", password)
 
     val loadedData = sparkSession.read
       .option("sep", ";")
@@ -75,7 +78,7 @@ object Extractor extends App {
       val idsToClose = openIdsList.filterNot(allLoadedIds.contains)
 
       if (idsToClose.nonEmpty) {
-        val conn = DriverManager.getConnection(databaseUrl, "postgres", "PGPASSWORD")
+        val conn = DriverManager.getConnection(databaseUrl, user, password)
         val statement = conn.createStatement()
         statement.execute(f"update vacancies set is_open = false where id in ('${idsToClose.mkString("','")}')")
 
@@ -83,44 +86,6 @@ object Extractor extends App {
         conn.close()
       }
 
-//      val loadedEmploeesData = loadedData.select(
-//        "adress_id",
-//        "employer_id",
-//        "adress_street",
-//        "adress_building",
-//        "adress_description",
-//        "adress_lat",
-//        "adress_lng",
-//        "adress_raw",
-//        "employer_name",
-//        "employer_url",
-//        "employer_vacancies_url",
-//        "employer_trusted"
-//      ).where(col("adress_id").isNotNull && col("employer_id").isNotNull)
-//        .dropDuplicates(Seq("adress_id", "employer_id"))
-//
-//      loadedEmploeesData
-//        .write
-//        .mode(SaveMode.Ignore)
-//        .jdbc(databaseUrl, "employers", connectionProperties)
-//
-//      val openEmployes = sparkSession.read.jdbc(databaseUrl, "employers", connectionProperties)
-//        .select("adress_id", "employer_id")
-//        .where(col("has_open").equalTo(true))
-//
-//      val allEmployesIds = loadedData.select("adress_id", "employer_id").collect().map(c => (c(0), c(1))).toList
-//
-//      val openemployesIdsList = openEmployes.select("adress_id", "employer_id").collect().map(c => (c(0), c(1))).toList
-//      val employesToClose = openemployesIdsList.filterNot(allEmployesIds.contains)
-//
-//      if (employesToClose.nonEmpty) {
-//        val conn = DriverManager.getConnection(databaseUrl, "postgres", "PGPASSWORD")
-//        val statement = conn.createStatement()
-//        statement.execute(f"update employers set has_open = false where id in ('${idsToClose.mkString("','")}')")
-//
-//        statement.close()
-//        conn.close()
-//      }
 
     }
 }
