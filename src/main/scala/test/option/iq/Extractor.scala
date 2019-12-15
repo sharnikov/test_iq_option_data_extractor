@@ -1,12 +1,11 @@
 package test.option.iq
 
-import java.sql.DriverManager
+import java.sql.{DriverManager, Statement}
 import java.util.Properties
 
 import SchemaFactory.getRawSchema
-import org.apache.spark.sql.{SaveMode, SparkSession}
+import org.apache.spark.sql.{Row, SaveMode, SparkSession}
 import org.apache.spark.sql.functions.col
-
 
 
 object Extractor extends App {
@@ -26,68 +25,91 @@ object Extractor extends App {
 //      .schema(getRawSchema())
 //      .csv("hdfs://172.17.0.2:9000/data.csv")
 
-    val databaseUrl = "jdbc:postgresql://localhost:5432/vacancies_db"
+  val databaseUrl = "jdbc:postgresql://localhost:5432/vacancies_db"
 
-    val connectionProperties = new Properties()
+  val connectionProperties = new Properties()
     connectionProperties.put("Driver", "org.postgresql.Driver")
     connectionProperties.put("user", user)
     connectionProperties.put("password", password)
+    connectionProperties.put("url", databaseUrl)
+    connectionProperties.put("driverClass", "org.postgresql.Driver")
 
-    val loadedData = sparkSession.read
+  val broadcastConnect = sparkSession.sparkContext.broadcast(connectionProperties)
+
+  val loadedData = sparkSession.read
       .option("sep", ";")
       .schema(getRawSchema())
-      .csv("/home/osharnikov/IdeaProjects/DataFetcher/data.csv")
+      .csv("/home/osharnikov/IdeaProjects/DataFetcher/data1.csv")
       .persist()
 
-    if (loadedData.count() > 0) {
-      val loadedVacancies = loadedData.select(
-        "id",
-        "premium",
-        "name",
-        "department_id",
-        "department_name",
-        "has_test",
-        "response_letter_required",
-        "area_id",
-        "area_name",
-        "salary_from",
-        "salary_to",
-        "salary_currency",
-        "salary_gross",
-        "adress_id",
-        "employer_id",
-        "employer_name",
-        "created_at",
-        "url",
-        "alternate_url",
-        "snippet_requirement",
-        "snippet_responsibility"
-      ).where(col("id").isNotNull)
 
-      loadedVacancies.show()
-
-      loadedVacancies
-        .write
-        .mode(SaveMode.Append)
-        .jdbc(databaseUrl, "vacancies", connectionProperties)
-
-      val openVacancies = sparkSession.read.jdbc(databaseUrl, "vacancies", connectionProperties)
-        .select("id", "is_open")
-        .where(col("is_open").equalTo(true))
-
-      val allLoadedIds = loadedData.select("id").collect().map(_(0)).toList
-      val openIdsList = openVacancies.select("id").collect().map(_(0)).toList
-      val idsToClose = openIdsList.filterNot(allLoadedIds.contains)
-
-      if (idsToClose.nonEmpty) {
-        val conn = DriverManager.getConnection(databaseUrl, user, password)
-        val statement = conn.createStatement()
-        statement.execute(f"update vacancies set is_open = false where id in ('${idsToClose.mkString("','")}')")
-
-        statement.close()
-        conn.close()
-      }
+  val listOfFetchedColumns = List(
+      "id",
+      "premium",
+      "name",
+      "department_id",
+      "department_name",
+      "has_test",
+      "response_letter_required",
+      "area_id",
+      "area_name",
+      "salary_from",
+      "salary_to",
+      "salary_currency",
+      "salary_gross",
+      "adress_id",
+      "employer_id",
+      "employer_name",
+      "created_at",
+      "url",
+      "alternate_url",
+      "snippet_requirement",
+      "snippet_responsibility"
+    ).map(col)
 
 
+  val loadedVacancies = loadedData
+    .select(listOfFetchedColumns: _*)
+    .where(col("id").isNotNull).persist()
+
+  val openVacancies = sparkSession
+    .read
+    .jdbc(databaseUrl, "vacancies", connectionProperties)
+    .select("*")
+    .where(col("is_open").equalTo(true)).persist()
+
+
+  val newVacancies = loadedVacancies
+    .except(openVacancies.drop("is_open"))
+
+  newVacancies
+      .write
+      .mode(SaveMode.Append)
+      .jdbc(databaseUrl, "vacancies", connectionProperties)
+
+  val vacanciesIdsToClose = openVacancies.select("id").except(loadedVacancies.select("id"))
+
+  vacanciesIdsToClose.foreachPartition { partition: Iterator[Row] =>
+
+    val connectionProperties = broadcastConnect.value
+    val url = connectionProperties.getProperty("url")
+    val user = connectionProperties.getProperty("user")
+    val password = connectionProperties.getProperty("password")
+    val jdbcClass = connectionProperties.getProperty("driverClass")
+
+    Class.forName(jdbcClass)
+
+    val conn = DriverManager.getConnection(url, user, password)
+    val batchSize = 1000
+    val statement: Statement = conn.createStatement()
+
+    partition.grouped(batchSize).foreach { rows =>
+      val idsToClose = rows.map(_(0)).toList
+      statement.addBatch(f"update vacancies set is_open = false where id in ('${idsToClose.mkString("','")}')")
     }
+
+    statement.executeBatch()
+
+    conn.close()
+  }
 }

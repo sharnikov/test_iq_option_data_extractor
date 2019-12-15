@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   name := "Data Extractor",
   organization := "test.option.iq",
-  scalaVersion := "2.12.0",
+  scalaVersion := "2.12.4",
   version := "0.1"
 )
 
