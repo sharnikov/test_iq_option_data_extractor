@@ -34,16 +34,16 @@ class VacanciesExtractTaskFactory extends ExtractTaskFactory {
         connectionProperties.put("user", "postgres")
         connectionProperties.put("password", "PGPASSWORD")
 
-//        val loadedData = sparkSession.read
-//          .option("sep", ";")
-//          .schema(getRawSchema())
-//          .csv("/home/osharnikov/IdeaProjects/DataFetcher/data.csv")
-//          .persist()
+        val loadedData = sparkSession.read
+          .option("sep", ";")
+          .schema(getRawSchema())
+          .csv("/home/osharnikov/IdeaProjects/DataFetcher/data.csv")
+          .persist()
 
-            val loadedData = sparkSession.read
-              .option("sep", ";")
-              .schema(getRawSchema())
-              .csv("hdfs://172.17.0.2:9000/data.csv")
+//            val loadedData = sparkSession.read
+//              .option("sep", ";")
+//              .schema(getRawSchema())
+//              .csv("hdfs://172.17.0.2:9000/data.csv")
 
         if (loadedData.count() > 0) {
           val loadedVacancies = loadedData.select(
@@ -72,7 +72,7 @@ class VacanciesExtractTaskFactory extends ExtractTaskFactory {
 
           loadedVacancies
             .write
-            .mode(SaveMode.Ignore)
+            .mode(SaveMode.Append)
             .jdbc(databaseUrl, "vacancies", connectionProperties)
 
 //          loadedVacancies.show()
