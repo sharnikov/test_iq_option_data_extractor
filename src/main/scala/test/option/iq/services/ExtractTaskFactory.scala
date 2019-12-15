@@ -7,16 +7,16 @@ import java.util.concurrent.TimeUnit
 import org.apache.spark.sql.{SaveMode, SparkSession}
 import org.apache.spark.sql.functions.col
 import test.option.iq.SchemaFactory.getRawSchema
-import test.option.iq.services.FetchTaskFactory.FetchTask
+import test.option.iq.services.ExtractTaskFactory.ExtractTask
 
-trait FetchTaskFactory {
-    def getFetchTask(): FetchTask
+trait ExtractTaskFactory {
+    def getExtractTask(): ExtractTask
 }
 
-class VacanciesFetchTaskFactory extends FetchTaskFactory {
+class VacanciesExtractTaskFactory extends ExtractTaskFactory {
 
 
-  override def getFetchTask(): FetchTask = {
+  override def getExtractTask(): ExtractTask = {
 
     val task = new Runnable {
       override def run(): Unit = {
@@ -34,11 +34,16 @@ class VacanciesFetchTaskFactory extends FetchTaskFactory {
         connectionProperties.put("user", "postgres")
         connectionProperties.put("password", "PGPASSWORD")
 
-        val loadedData = sparkSession.read
-          .option("sep", ";")
-          .schema(getRawSchema())
-          .csv("/home/osharnikov/IdeaProjects/DataFetcher/data.csv")
-          .persist()
+//        val loadedData = sparkSession.read
+//          .option("sep", ";")
+//          .schema(getRawSchema())
+//          .csv("/home/osharnikov/IdeaProjects/DataFetcher/data.csv")
+//          .persist()
+
+            val loadedData = sparkSession.read
+              .option("sep", ";")
+              .schema(getRawSchema())
+              .csv("hdfs://172.17.0.2:9000/data.csv")
 
         if (loadedData.count() > 0) {
           val loadedVacancies = loadedData.select(
@@ -63,16 +68,20 @@ class VacanciesFetchTaskFactory extends FetchTaskFactory {
             "alternate_url",
             "snippet_requirement",
             "snippet_responsibility"
-          )
+          ).persist()
 
           loadedVacancies
             .write
             .mode(SaveMode.Ignore)
             .jdbc(databaseUrl, "vacancies", connectionProperties)
 
+//          loadedVacancies.show()
+
           val openVacancies = sparkSession.read.jdbc(databaseUrl, "vacancies", connectionProperties)
             .select("id", "is_open")
             .where(col("is_open").equalTo(true))
+
+          openVacancies.show()
 
           val allLoadedIds = loadedData.select("id").collect().map(_(0)).toList
           val openIdsList = openVacancies.select("id").collect().map(_(0)).toList
@@ -127,23 +136,25 @@ class VacanciesFetchTaskFactory extends FetchTaskFactory {
           //      }
 
         }
+
+        sparkSession.close()
       }
     }
 
-    FetchTask(
+    ExtractTask(
       task = task,
       firstDelayTime = 0,
-      repeateRate = 1,
-      TimeUnit.MINUTES
+      repeateRate = 15,
+      TimeUnit.SECONDS
     )
 
   }
 }
 
-object FetchTaskFactory {
+object ExtractTaskFactory {
 
-  case class FetchTask(task: Runnable,
-                       firstDelayTime: Long,
-                       repeateRate: Long,
-                       timeUnit: TimeUnit)
+  case class ExtractTask(task: Runnable,
+                         firstDelayTime: Long,
+                         repeateRate: Long,
+                         timeUnit: TimeUnit)
 }
