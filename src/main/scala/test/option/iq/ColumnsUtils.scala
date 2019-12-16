@@ -1,6 +1,6 @@
 package test.option.iq
 
-import org.apache.spark.sql.Column
+import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.StructType
 
@@ -65,4 +65,6 @@ object ColumnsUtils {
       "snippet_responsibility"
     ).map(col)
   }
+
+  case class Vacancies(open: DataFrame, loaded: DataFrame)
 }
