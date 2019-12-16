@@ -1,8 +1,10 @@
 package test.option.iq
 
+import org.apache.spark.sql.Column
+import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.StructType
 
-object SchemaFactory {
+object ColumnsUtils {
 
   def getRawSchema() = {
     new StructType()
@@ -36,5 +38,31 @@ object SchemaFactory {
       .add("alternate_url", "string")
       .add("snippet_requirement", "string")
       .add("snippet_responsibility", "string")
+  }
+
+  def loadVacanciesColumns(): List[Column] = {
+    List(
+      "id",
+      "premium",
+      "name",
+      "department_id",
+      "department_name",
+      "has_test",
+      "response_letter_required",
+      "area_id",
+      "area_name",
+      "salary_from",
+      "salary_to",
+      "salary_currency",
+      "salary_gross",
+      "adress_id",
+      "employer_id",
+      "employer_name",
+      "created_at",
+      "url",
+      "alternate_url",
+      "snippet_requirement",
+      "snippet_responsibility"
+    ).map(col)
   }
 }

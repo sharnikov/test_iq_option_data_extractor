@@ -1,82 +1,42 @@
 package test.option.iq
 
+import java.io.File
 import java.sql.{DriverManager, Statement}
 import java.util.Properties
-import java.util.concurrent.TimeUnit
 
-import SchemaFactory.getRawSchema
+import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.sql.{Row, SaveMode, SparkSession}
 import org.apache.spark.sql.functions.col
+import test.option.iq.ColumnsUtils._
 
 
 object Extractor extends App with LazyLogging {
 
-//  private val executor = java.util.concurrent.Executors.newSingleThreadScheduledExecutor()
-//
-//  val task = new Runnable {
-//    override def run(): Unit = {
+      val config: Settings = new AppSettings(ConfigFactory.parseFile(new File("src/main/resources/app.conf")))
 
       val sparkSession = SparkSession
         .builder()
-        .master("local")
-        .appName("extractor")
+        .master(config.spark().url())
+        .appName(config.spark().appName())
         .getOrCreate()
 
       logger.info("Session created")
 
-      val user = "some_user"
-      val password = "some_pass"
-
-
       val loadedData = sparkSession.read
-        .option("sep", ";")
-        .format("csv")
+        .option("sep", config.hdfs().delimeter())
+        .format(config.hdfs().format())
         .schema(getRawSchema())
-        .csv("hdfs://172.16.0.2:9000/data.csv")
+        .csv(config.hdfs().url())
 
       logger.info("Data loaded")
 
-      val databaseUrl = "jdbc:postgresql://localhost:5432/vacancies_db"
-
-      val connectionProperties = new Properties()
-      connectionProperties.put("Driver", "org.postgresql.Driver")
-      connectionProperties.put("user", user)
-      connectionProperties.put("password", password)
-      connectionProperties.put("url", databaseUrl)
-
+      val databaseUrl = config.db().url()
+      val connectionProperties = config.db().connectionProperties()
       val broadcastConnect = sparkSession.sparkContext.broadcast(connectionProperties)
-//      val loadedData = sparkSession.read
-//        .option("sep", ";")
-//        .schema(getRawSchema())
-//        .csv("/home/osharnikov/IdeaProjects/DataFetcher/data1.csv")
-//        .persist()
 
       logger.info("Broadcast connection established")
-
-      val listOfFetchedColumns = List(
-        "id",
-        "premium",
-        "name",
-        "department_id",
-        "department_name",
-        "has_test",
-        "response_letter_required",
-        "area_id",
-        "area_name",
-        "salary_from",
-        "salary_to",
-        "salary_currency",
-        "salary_gross",
-        "adress_id",
-        "employer_id",
-        "employer_name",
-        "created_at",
-        "url",
-        "alternate_url",
-        "snippet_requirement",
-        "snippet_responsibility"
-      ).map(col)
+      val listOfFetchedColumns = loadVacanciesColumns()
 
 
       val loadedVacancies = loadedData
@@ -133,8 +93,4 @@ object Extractor extends App with LazyLogging {
       }
 
       sparkSession.close()
-//    }
-//  }
-//
-//  executor.scheduleAtFixedRate(task, 0, 30, TimeUnit.SECONDS)
 }
