@@ -5,31 +5,37 @@ import java.util.Properties
 import java.util.concurrent.TimeUnit
 
 import SchemaFactory.getRawSchema
-import org.apache.parquet.format.LogicalTypes.TimeUnits
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.sql.{Row, SaveMode, SparkSession}
 import org.apache.spark.sql.functions.col
 
 
-object Extractor extends App {
+object Extractor extends App with LazyLogging {
 
-  private val executor = java.util.concurrent.Executors.newSingleThreadScheduledExecutor()
+//  private val executor = java.util.concurrent.Executors.newSingleThreadScheduledExecutor()
+//
+//  val task = new Runnable {
+//    override def run(): Unit = {
 
-  val task = new Runnable {
-    override def run(): Unit = {
       val sparkSession = SparkSession
         .builder()
         .master("local")
         .appName("extractor")
         .getOrCreate()
 
+      logger.info("Session created")
+
       val user = "some_user"
       val password = "some_pass"
 
 
-      //    val loadedData = sparkSession.read
-      //      .option("sep", ";")
-      //      .schema(getRawSchema())
-      //      .csv("hdfs://172.17.0.2:9000/data.csv")
+      val loadedData = sparkSession.read
+        .option("sep", ";")
+        .format("csv")
+        .schema(getRawSchema())
+        .csv("hdfs://172.16.0.2:9000/data.csv")
+
+      logger.info("Data loaded")
 
       val databaseUrl = "jdbc:postgresql://localhost:5432/vacancies_db"
 
@@ -40,13 +46,13 @@ object Extractor extends App {
       connectionProperties.put("url", databaseUrl)
 
       val broadcastConnect = sparkSession.sparkContext.broadcast(connectionProperties)
+//      val loadedData = sparkSession.read
+//        .option("sep", ";")
+//        .schema(getRawSchema())
+//        .csv("/home/osharnikov/IdeaProjects/DataFetcher/data1.csv")
+//        .persist()
 
-      val loadedData = sparkSession.read
-        .option("sep", ";")
-        .schema(getRawSchema())
-        .csv("/home/osharnikov/IdeaProjects/DataFetcher/data1.csv")
-        .persist()
-
+      logger.info("Broadcast connection established")
 
       val listOfFetchedColumns = List(
         "id",
@@ -77,12 +83,13 @@ object Extractor extends App {
         .select(listOfFetchedColumns: _*)
         .where(col("id").isNotNull).persist()
 
+      logger.info("Vacancies loaded")
+
       val openVacancies = sparkSession
         .read
         .jdbc(databaseUrl, "vacancies", connectionProperties)
         .select("*")
         .where(col("is_open").equalTo(true)).persist()
-
 
       val newVacancies = loadedVacancies
         .except(openVacancies.drop("is_open")).persist()
@@ -126,8 +133,8 @@ object Extractor extends App {
       }
 
       sparkSession.close()
-    }
-  }
-
-  executor.scheduleAtFixedRate(task, 0, 30, TimeUnit.SECONDS)
+//    }
+//  }
+//
+//  executor.scheduleAtFixedRate(task, 0, 30, TimeUnit.SECONDS)
 }
