@@ -17,17 +17,20 @@ object Extractor extends App with LazyLogging {
         .master(settings.spark().url())
         .appName(settings.spark().appName())
         .getOrCreate()
+
       logger.info("Session created")
 
       val jobService = new JobServiceImpl(settings)
-      val databaseUrl = settings.db().url()
       val connectionProperties = settings.db().connectionProperties()
       val broadcastConnect = session.sparkContext.broadcast(connectionProperties)
 
-      val loadedData = jobService.loadData(session)
-      logger.info("Data loaded")
-      val vacancies = jobService.getVacancies(loadedData, session)
-      jobService.closeVacancies(vacancies.open, vacancies.loaded, broadcastConnect)
+      try {
+            val loadedData = jobService.loadData(session)
+            logger.info("Data loaded")
+            val vacancies = jobService.getVacancies(loadedData, session)
+            jobService.closeVacancies(vacancies.open, vacancies.loaded, broadcastConnect)
+      } finally {
+            session.close()
+      }
 
-      session.close()
 }

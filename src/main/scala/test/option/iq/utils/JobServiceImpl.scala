@@ -39,18 +39,20 @@ class JobServiceImpl(settings: Settings) extends JobService with LazyLogging {
 
       Class.forName(jdbcClass)
 
-      val conn = DriverManager.getConnection(url, user, password)
+      val connection = DriverManager.getConnection(url, user, password)
       val batchSize = 1000
-      val statement: Statement = conn.createStatement()
+      val statement: Statement = connection.createStatement()
 
-      partition.grouped(batchSize).foreach { rows =>
-        val idsToClose = rows.map(_(0)).toList
-        statement.addBatch(f"update vacancies set is_open = false where id in ('${idsToClose.mkString("','")}')")
+      try {
+        partition.grouped(batchSize).foreach { rows =>
+          val idsToClose = rows.map(_(0)).toList
+          statement.addBatch(f"update vacancies set is_open = false where id in ('${idsToClose.mkString("','")}')")
+        }
+
+        statement.executeBatch()
+      } finally {
+        connection.close()
       }
-
-      statement.executeBatch()
-
-      conn.close()
     }
   }
 
