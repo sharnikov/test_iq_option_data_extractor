@@ -1,25 +1,13 @@
-package test.option.iq
+package test.option.iq.utils
 
 import java.sql.{DriverManager, Statement}
 import java.util.Properties
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.sql.{DataFrame, Dataset, Row, SaveMode, SparkSession}
 import org.apache.spark.sql.functions.col
-import test.option.iq.ColumnsUtils.{Vacancies, getRawSchema, loadVacanciesColumns}
-
-trait JobService {
-
-  def closeVacancies(openVacancies: Dataset[Row],
-                     loadedVacancies: Dataset[Row],
-                     broadcastConnect: Broadcast[Properties]): Unit
-
-   def getVacancies(loadedData: DataFrame,
-                    session: SparkSession): Vacancies
-
-   def loadData(session: SparkSession): DataFrame
-}
+import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparkSession}
+import test.option.iq.utils.ColumnsUtils.{Vacancies, getRawSchema, loadVacanciesColumns}
 
 class JobServiceImpl(settings: Settings) extends JobService with LazyLogging {
 

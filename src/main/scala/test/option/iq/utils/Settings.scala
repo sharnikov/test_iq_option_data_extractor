@@ -1,14 +1,9 @@
-package test.option.iq
+package test.option.iq.utils
 
 import java.util.Properties
 
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{LocalFileSystem, Path}
-import org.apache.hadoop.hdfs.DistributedFileSystem
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
-
-import scala.concurrent.duration.Duration
 
 trait Settings {
   def db(): DB
@@ -69,17 +64,3 @@ class HdfsImpl(config: Config) extends Hdfs {
 
 
 }
-
-//class HdfsImpl(config: Config) extends Hdfs {
-//  override def path(): Path = new Path(config.getString("path"))
-//
-//  override def configuration(): Configuration = {
-//    val conf = new Configuration()
-//    val url = config.getString("address")
-//    conf.set("fs.defaultFS", url)
-//    conf.set("fs.hdfs.impl", classOf[DistributedFileSystem].getName)
-//    conf.set("fs.file.impl", classOf[LocalFileSystem].getName)
-//
-//    conf
-//  }
-//}

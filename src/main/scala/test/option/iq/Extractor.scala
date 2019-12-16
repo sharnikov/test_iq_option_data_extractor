@@ -1,9 +1,11 @@
 package test.option.iq
 
 import java.io.File
+
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.sql.SparkSession
+import test.option.iq.utils.{AppSettings, JobServiceImpl, Settings}
 
 
 object Extractor extends App with LazyLogging {
