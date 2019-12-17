@@ -27,7 +27,7 @@ create table VACANCIES(
     snippet_responsibility TEXT
 );
 ```
-Indexes DDL
+Indexes DDL:
 ```
 create index vacancies_date_index on vacancies(created_at);
 cluster vacancies using vacancies_date_index;
@@ -58,7 +58,7 @@ END
 salary_from/salary_to is not null and salary_currency in ('RUR', 'USD', 'EUR') [and date between (date1, date2)] [group by id];
 ```
 
-Example
+Example:
 ```
 select avg(
 case when(salary_currency = 'RUR') THEN salary_from
