@@ -10,7 +10,7 @@ import test.option.iq.utils.{AppSettings, JobServiceImpl, Settings}
 
 object Extractor extends App with LazyLogging {
 
-      val settings: Settings = new AppSettings(ConfigFactory.parseFile(new File("src/main/resources/app.conf")))
+      val settings: Settings = new AppSettings(ConfigFactory.load("app.conf").resolve())
 
       val session = SparkSession
         .builder()
