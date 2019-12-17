@@ -1,7 +1,7 @@
 # test_iq_option_data_extractor
 
 Scripts to create database table:
-
+```
 create table VACANCIES(
     id TEXT not null,
     premium boolean not null,
@@ -26,6 +26,7 @@ create table VACANCIES(
     snippet_requirement TEXT,
     snippet_responsibility TEXT
 );
+```
 
 create index vacancies_date_index on vacancies(created_at);
 cluster vacancies using vacancies_date_index;
