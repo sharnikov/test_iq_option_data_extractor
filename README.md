@@ -1,6 +1,6 @@
 # test_iq_option_data_extractor
 
-Scripts to create database table:
+Table DDL:
 ```
 create table VACANCIES(
     id TEXT not null,
@@ -27,7 +27,8 @@ create table VACANCIES(
     snippet_responsibility TEXT
 );
 ```
-
+Indexes DDL
+```
 create index vacancies_date_index on vacancies(created_at);
 cluster vacancies using vacancies_date_index;
 
@@ -37,17 +38,10 @@ create index vacancy_id_index on vacancies(id);
 alter table vacancies add primary key (id);
 
 alter table vacancies alter column is_open set default true;
-
+```
 
 Schemas to build the scripts to do potential analytics:
-
-select avg(
-case when(salary_currency = 'RUR') THEN salary_from
-     when(salary_currency = 'EUR') THEN salary_from*70
-     when(salary_currency = 'USD') THEN salary_from*60
-END
-) from vacancies where salary_from is not null and salary_currency in ('RUR', 'USD', 'EUR');
-
+```
 
 - select min/max/avg(salary_from/salary_to) from vacancies where [is_open = true/false] and salary_gross = true/false and
 salary_from/salary_to is not null [and date between (date1, date2)] and salary_currency = RUR/EUR/USD [group by id];
@@ -62,3 +56,14 @@ case when(salary_currency = 'RUB') THEN salary_from/salary_to
 END
 ) from vacancies where [is_open = true/false] and salary_gross = true/false and
 salary_from/salary_to is not null and salary_currency in ('RUR', 'USD', 'EUR') [and date between (date1, date2)] [group by id];
+```
+
+Example
+```
+select avg(
+case when(salary_currency = 'RUR') THEN salary_from
+     when(salary_currency = 'EUR') THEN salary_from*70
+     when(salary_currency = 'USD') THEN salary_from*60
+END
+) from vacancies where salary_from is not null and salary_currency in ('RUR', 'USD', 'EUR');
+```
